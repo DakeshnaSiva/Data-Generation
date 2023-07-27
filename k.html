@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Data Generator</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            height: 100vh;
+            width: 100%;
+            background: linear-gradient(115deg, #56d8e4 10%, #9f01ea 90%);
+        }
+
+        .container {
+            background-color: white;
+            max-width: 35%;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        legend {
+            font-size: 18px;
+            font-weight: bold;
+            color: black;
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="number"],
+        select {
+            width: 40%;
+            padding: 5px;
+        }
+
+        .column-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .column-select {
+            color: black;
+            flex-grow: 1;
+            margin-right: 5px;
+            padding: 3px;
+        }
+
+        .column-suggestion-select {
+            padding: 3px;
+        }
+
+        #custom_column_button,
+        #add_column_button,
+        #generate_button {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 32%;
+            /* Modified width to make all buttons the same width */
+            display: inline-block;
+        }
+
+        #custom_column_button:hover,
+        #add_column_button:hover,
+        #generate_button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <form id="data_generator_form" method="POST" action="/" enctype="multipart/form-data">
+            <fieldset>
+                <legend>Changepond Data Generation</legend>
+                <label for="num_datasets">Number of Datasets:</label>
+                <input type="number" name="num_datasets" id="num_datasets" required><br><br>
+
+                <div id="columns_container">
+                    <div class="column-container">
+                        <label for="column_1">Column 1:</label>
+                        <select name="column_1" class="column-select" onchange="handleColumnChange(1)">
+                            <option value="" selected disabled>Select Column</option>
+                            <option value="Salutation">Salutation</option>
+                            <option value="First Name">First Name</option>
+                            <option value="Last Name">Last Name</option>
+                            <option value="Gender">Gender</option>
+                            <option value="Age">Age</option>
+                            <option value="Marital Status">Marital Status</option>
+                            <option value="Occupation">Occupation</option>
+                            <option value="Email">Email</option>
+                            <option value="Address">Address</option>
+                            <option value="City">City</option>
+                            <option value="Postal Code">Postal Code</option>
+                            <option value="Telephone">Telephone</option>
+                            <option value="ID">ID</option>
+                        </select>
+                        <select name="column_1_suggestion" class="column-suggestion-select" disabled>
+                            <option value="" selected disabled>Select Suggestion</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="button" id="add_column_button" value="Add Column" onclick="addColumn()">
+                <input type="button" id="custom_column_button" value="Custom Column" onclick="addCustomColumn()">
+                <input type="text" name="custom_column" id="custom_column" class="column-select" style="display: none;"
+                    placeholder="Enter Custom Column">
+                <input type="text" name="custom_suggestions" id="custom_suggestions" class="column-suggestion-select"
+                    style="display: none;" placeholder="Enter Custom Suggestions (comma-separated)">
+
+                <br><br>
+                <label for="country">Country:</label>
+                <select name="country">
+                    <option value="india">India</option>
+                    <option value="sweden">Sweden</option>
+                    <option value="united_kingdom">United Kingdom</option>
+                    <option value="usa">usa</option>
+                </select>
+                <br><br>
+                <label for="file_format">File Format:</label>
+                <select name="download_format">
+                    <option value="excel">Excel</option>
+                    <option value="xml">XML</option>
+                    <option value="json">JSON</option>
+                    <option value="notepad">Notepad</option>
+                </select>
+                <br><br>
+                <input type="submit" id="generate_button" value="Generate">
+            </fieldset>
+        </form>
+    </div>
+
+    <script>
+        var columnSuggestions = {
+            'Salutation': ['Mr.', 'Mrs.', 'Ms.'],
+            'First Name': ['male', 'female'],
+            'Last Name': [],
+            'Gender': ['Male', 'Female'],
+            'Age': [],
+            'Marital Status': ['Single', 'Married', 'Divorced'],
+            'Occupation': [],
+            'Email': ['outlook.com', 'yahoo.com', 'gmail.com', 'hotmail.com', 'bing.com'],
+            'Address': ['ip_address', 'street_address'],
+            'City': [],
+            'Postal Code': [],
+            'Telephone': [],
+            'ID': ['ULID', 'MongoDB ObjectID', 'App Bundle ID', 'GUID']
+        };
+
+        var usedColumnNumbers = [1]; // Track used column numbers, initialized with Column 1
+
+        function addColumn() {
+            var columnsContainer = document.getElementById('columns_container');
+
+            var columnNumber = getNextAvailableColumnNumber();
+            usedColumnNumbers.push(columnNumber); // Add the column number to the usedColumnNumbers array
+
+            var columnContainer = document.createElement('div');
+            columnContainer.className = 'column-container';
+
+            var columnLabel = document.createElement('label');
+            columnLabel.textContent = 'Column ' + columnNumber + ':';
+
+            var columnSelect = document.createElement('select');
+            columnSelect.name = 'column_' + columnNumber;
+            columnSelect.className = 'column-select';
+            columnSelect.onchange = function () {
+                handleColumnChange(columnNumber);
+            };
+
+            var selectOption = document.createElement('option');
+            selectOption.value = '';
+            selectOption.text = 'Select Column';
+            selectOption.disabled = true;
+            selectOption.selected = true;
+            columnSelect.appendChild(selectOption);
+
+            for (var column in columnSuggestions) {
+                var option = document.createElement('option');
+                option.value = column;
+                option.text = column;
+                columnSelect.appendChild(option);
+            }
+
+            var suggestionSelect = document.createElement('select');
+            suggestionSelect.name = 'column_' + columnNumber + '_suggestion';
+            suggestionSelect.className = 'column-suggestion-select';
+            suggestionSelect.disabled = true;
+
+            var suggestionOption = document.createElement('option');
+            suggestionOption.value = '';
+            suggestionOption.text = 'Select Suggestion';
+            suggestionOption.disabled = true;
+            suggestionOption.selected = true;
+            suggestionSelect.appendChild(suggestionOption);
+
+            columnContainer.appendChild(columnLabel);
+            columnContainer.appendChild(columnSelect);
+            columnContainer.appendChild(suggestionSelect);
+
+            columnsContainer.appendChild(columnContainer);
+        }
+
+        function getNextAvailableColumnNumber() {
+            var columnNumber = 1;
+            while (usedColumnNumbers.includes(columnNumber)) {
+                columnNumber++;
+            }
+            return columnNumber;
+        }
+
+        function addCustomColumn() {
+            var columnsContainer = document.getElementById('columns_container');
+
+            var columnNumber = getNextAvailableColumnNumber();
+            usedColumnNumbers.push(columnNumber); // Add the column number to the usedColumnNumbers array
+
+            var customColumnContainer = document.createElement('div');
+            customColumnContainer.className = 'column-container';
+
+            var customColumnInput = document.createElement('input');
+            customColumnInput.type = 'text';
+            customColumnInput.name = `custom_column_${columnNumber}`;
+            customColumnInput.id = `custom_column_${columnNumber}`;
+            customColumnInput.className = 'column-select';
+            customColumnInput.placeholder = 'Enter Custom Column';
+
+            var customSuggestionsInput = document.createElement('input');
+            customSuggestionsInput.type = 'text';
+            customSuggestionsInput.name = `custom_suggestions_${columnNumber}`;
+            customSuggestionsInput.id = `custom_suggestions_${columnNumber}`;
+            customSuggestionsInput.className = 'column-suggestion-select';
+            customSuggestionsInput.placeholder = 'Enter Custom Suggestions (comma-separated)';
+
+            var columnLabel = document.createElement('label');
+            columnLabel.textContent = 'Column ' + columnNumber + ':';
+
+            customColumnContainer.appendChild(columnLabel);
+            customColumnContainer.appendChild(customColumnInput);
+            customColumnContainer.appendChild(customSuggestionsInput);
+
+            columnsContainer.appendChild(customColumnContainer);
+        }
+
+        function handleColumnChange(columnNumber) {
+            var columnSelect = document.querySelector(`select[name="column_${columnNumber}"]`);
+            var suggestionSelect = document.querySelector(`select[name="column_${columnNumber}_suggestion"]`);
+            var selectedColumn = columnSelect.value;
+
+            suggestionSelect.innerHTML = '';
+
+            if (selectedColumn) {
+                var suggestions = columnSuggestions[selectedColumn];
+                if (suggestions && suggestions.length > 0) {
+                    for (var i = 0; i < suggestions.length; i++) {
+                        var option = document.createElement('option');
+                        option.value = suggestions[i];
+                        option.text = suggestions[i];
+                        suggestionSelect.appendChild(option);
+                    }
+                    suggestionSelect.disabled = false;
+                    suggestionSelect.style.display = 'block';
+                } else {
+                    suggestionSelect.disabled = true;
+                    suggestionSelect.style.display = 'none';
+                }
+            } else {
+                suggestionSelect.disabled = true;
+                suggestionSelect.style.display = 'none';
+            }
+        }
+
+        // Add event listener for column select change
+        $(document).on('change', '.column-select', function () {
+            var columnNumber = parseInt($(this).attr('name').replace('column_', ''));
+            handleColumnChange(columnNumber);
+        });
+    </script>
+</body>
+
+</html>
